@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <script src='main.js'></script>
+</head>
+<style>
+    .box {
+        width: 300px;
+        height: 300px;
+        overflow: hidden;
+        border: 1px solid black;
+    }
+    .box div {
+        float: left;
+        width: 100px;
+        height: 100px;
+        line-height: 100px;
+        text-align: center;
+        font-size: 30px;
+        border: 1px solid black;
+        box-sizing: border-box;
+    }
+    .box .circle::after {
+        content: '⭕️';
+    }
+    .box .error::after {
+        content: '❌';
+    }
+    
+</style>
+<body>
+    <div class="box"></div>
+</body>
+<script>
+    function initDom() {
+        const fragment = document.createDocumentFragment();
+        for(var i = 0; i < 9; i++) {
+            const elem = document.createElement('div');
+            elem.classList = ['item'];
+            elem.addEventListener('click', handleClick.bind(this, i));
+            fragment.appendChild(elem);
+        }
+        document.getElementsByClassName('box')[0].appendChild(fragment);
+    }
+
+    initDom();
+
+    let color = 1;
+    const pattern = new Array(9).fill(0);
+    const selections = Array.from(document.getElementsByClassName('item'));
+    function reset() {
+        selections.forEach(item => { item.classList = []; });
+        pattern = new Array(9).fill(0);
+    }
+
+    function handleClick(index, e) {
+        if (pattern[index]) return;
+        pattern[index] = color;
+        if (check(pattern, color)) {
+            alert(color === 1 ? '⭕️ is winner' : '❌ is winner');
+        }
+        selections[index].classList.add(color === 1 ? 'circle' : 'error');
+        color = 3 - color;
+        console.log(bestChoice(pattern, color))
+    }
+
+    function check(currentArr, currentColor) {
+        {
+            // 横向
+            for(let i = 0; i < 3; i++) {
+                let win = true;
+                for(let j = 0; j < 3; j++) {
+                    if (currentArr[j + 3 * i] !== currentColor) {
+                        win = false;
+                    }
+                }
+                if (win) return true;
+            }
+        }
+        {
+            // 纵向
+            for(let i = 0; i < 3; i++) {
+                let win = true;
+                for(let j = 0; j < 3; j++) {
+                    if (currentArr[i + j * 3] !== currentColor) {
+                        win = false;
+                    }
+                }
+                if (win) return true;
+            }
+        }
+        {
+            //  \
+            let win = true;
+            for(let i = 0; i < 3; i++) {
+                if (currentArr[3 * i] !== currentColor) {
+                    win = false;
+                } 
+            }
+            if (win) return true;
+        }
+        {
+            //  /
+            let win = true;
+            for(let i = 0; i < 3; i++) {
+                if (currentArr[2 * (i + 1)] !== currentColor) {
+                    win = false;
+                } 
+            }
+            if (win) return true;
+        }
+    }
+
+    function clone(arr) {
+        return JSON.parse(JSON.stringify(arr))
+    }
+
+    function willwin(currentArr, currentColor) {
+        for (var i = 0; i < 9; i++) {
+            if (currentArr[i]) continue;
+            const temp = clone(currentArr);
+            temp[i] = currentColor;
+            if (check(temp, currentColor)) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+    function bestChoice(currentArr, currentColor) {
+        let point = willwin(currentArr, currentColor);
+        if (point) {
+            return {
+                point,
+                result: 1
+            }
+        }
+        let result = -1;
+        outer:for(let i = 0; i < 3; i++) {
+            for(let j = 0; j < 3; j++) {
+                if (currentArr[i * 3 + j]) continue;
+                let temp = clone(currentArr);
+                temp [i * 3 + j] = currentColor;
+                let opp = bestChoice(temp, 3 - currentColor);
+                if (-opp.result >= result) {
+                    point = [j, i];
+                    result = -opp.result;
+                }
+                if (result === 1) {
+                    break outer;
+                }
+
+            }
+        }
+
+        return {
+            point,
+            result: point ? result : 0
+        }
+    }
+
+</script>
+</html>
