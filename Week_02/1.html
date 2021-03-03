@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+<style>
+    .box {
+       overflow: hidden;
+       width: 1000px;
+    }
+    .box > div {
+        width: 8px;
+        height: 8px;
+        border: 1px solid white;
+        float: left;
+    }
+    .box > .active {
+        background: black;
+    }
+</style>
+<body>
+    <div class="box"></div>
+    <button onclick="handleClick()">save</button>
+    <button onclick="handleResetClick()">reset</button>
+</body>
+<script>
+    const container = document.getElementsByClassName('box')[0];
+    const arr = new Array(10000).fill(0);
+    const storageMap = localStorage.getItem('map');
+    const map = storageMap ? JSON.parse(localStorage.getItem('map')) : arr;
+    console.time('render');
+    const fragment = document.createDocumentFragment();
+    for (var i = 0; i < 10000; i++) {
+        const elem = document.createElement('div');
+        elem.dataset.x = i % 100;
+        elem.dataset.y = Math.floor(i / 100);
+        elem.style.backgroundColor = 'rgba(0,0,0,0.3)';
+        if (map[i]) elem.style.backgroundColor = 'black';
+        fragment.appendChild(elem);
+    }
+    container.appendChild(fragment);
+    console.timeEnd('render');
+
+    let mousedown = false;
+    container.addEventListener('mousedown', (elem) => {
+        mousedown = true;
+        handleItemDown(elem);
+    })
+    window.addEventListener('mouseup', () => { mousedown = false; })
+    container.addEventListener('mousemove', (el) => {
+        handleItemDown(el);
+    })
+    function handleItemDown(elem) {
+        if (!mousedown) return;
+        const { target } = elem;
+        const { x, y } = target.dataset;
+        const index = x * 1 + y * 100;
+        if (!map[index]) {
+            map[index] = 1;
+            target.style.backgroundColor = 'black';
+        }
+    }
+    function handleClick() {
+        localStorage.setItem('map', JSON.stringify(map));
+    }
+    function handleResetClick() {
+        localStorage.setItem('map', '');
+        window.location.reload();
+    }
+</script>
+</html>
