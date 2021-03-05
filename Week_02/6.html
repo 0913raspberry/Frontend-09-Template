@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+<style>
+    .box {
+       overflow: hidden;
+       width: 800px;
+    }
+    .box > div {
+        width: 6px;
+        height: 6px;
+        border: 1px solid white;
+        float: left;
+    }
+    .box > .active {
+        background: black;
+    }
+</style>
+<body>
+    <div class="box"></div>
+    <button onclick="handleClick()">save</button>
+    <button onclick="handleResetClick()">reset</button>
+</body>
+<script>
+    const container = document.getElementsByClassName('box')[0];
+    const storageMap = localStorage.getItem('map');
+    const map = storageMap ? JSON.parse(localStorage.getItem('map')) : new Array(10000).fill(0);
+    const fragment = document.createDocumentFragment();
+    for (var i = 0; i < 10000; i++) {
+        const elem = document.createElement('div');
+        elem.dataset.x = i % 100;
+        elem.dataset.y = Math.floor(i / 100);
+        elem.style.backgroundColor = 'rgba(0,0,0,0.3)';
+        elem.className = 'item';
+        if (map[i]) elem.style.backgroundColor = 'black';
+        fragment.appendChild(elem);
+    }
+    container.appendChild(fragment);
+    let mousedown = false;
+    function handleItemDown(elem) {
+        if (!mousedown) return;
+        const { target } = elem;
+        const { x, y } = target.dataset;
+        const index = x * 1 + y * 100;
+        if (!map[index]) {
+            map[index] = 1;
+            target.style.backgroundColor = 'black';
+        }
+    }
+
+    function handleClick() {
+        localStorage.setItem('map', JSON.stringify(map));
+    }
+
+    function handleResetClick() {
+        localStorage.setItem('map', '');
+        window.location.reload();
+    }
+
+    container.addEventListener('mousedown', (elem) => {
+        mousedown = true;
+        handleItemDown(elem);
+    })
+    window.addEventListener('mouseup', () => { mousedown = false; })
+    container.addEventListener('mousemove', handleItemDown)
+
+    function sleep(ts) {
+        return new Promise(resolve => {
+            setTimeout(resolve, ts)
+        })
+    }
+
+    class Sorted {
+        constructor(data, compare) {
+            this.data = data.slice();
+            this.compare = compare || ((a, b) => a - b)
+        }
+        take() {
+            let min = this.data[0];
+            let minIndex = 0;
+            for (let i = 0; i < this.data.length; i++) {
+                if (this.compare(this.data[i], min) < 0) {
+                    minIndex = i;
+                    min = this.data[i]
+                }
+            }
+            this.data[minIndex] = this.data[this.data.length - 1];
+            this.data.pop();
+            return min;
+        }
+        give(v) {
+            this.data.push(v)
+        }
+        get length() {
+            return this.data.length;
+        }
+    }
+
+    async function findPath(map, start, end) {
+        const queue = new Sorted([start], (a, b) => distance(a) - distance(b));
+        const table = Object.create(map);
+
+        function distance(point) {
+            return (point[0] - end[0]) ** 2 + (point[1] - end[1]) ** 2;
+        }
+        
+        async function insert(x, y, prev) {
+
+            if (x < 0 || x >= 100 || y < 0 || y >= 100) return;
+            if (map[x + y * 100]) return;
+            
+            map[x + y * 100] = 1;
+            table[x + y * 100] = prev;
+            queue.give([x, y]);
+            container.children[x + y * 100].style.backgroundColor = 'lightgreen';
+            await sleep(10);
+        }
+
+        while (queue.length) {
+            let [x, y] = queue.take();
+            if ((x === end[0]) && (y === end[1])) {
+                container.children[x + y * 100].style.backgroundColor = 'red';
+                while (x !== start[0] || y !== start[1]) {
+                    [x, y] = table[x + 100 * y];
+                    container.children[x + y * 100].style.backgroundColor = 'purple';
+                    await sleep(10);
+                }
+                break;
+            }
+
+            await insert(x, y + 1, [x, y]);
+            await insert(x - 1, y, [x, y]);
+            await insert(x, y - 1, [x, y]);
+            await insert(x + 1, y, [x, y]);
+        }
+    }
+</script>
+</html>

@@ -9,11 +9,11 @@
 <style>
     .box {
        overflow: hidden;
-       width: 1000px;
+       width: 800px;
     }
     .box > div {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         border: 1px solid white;
         float: left;
     }
@@ -37,20 +37,12 @@
         elem.dataset.x = i % 100;
         elem.dataset.y = Math.floor(i / 100);
         elem.style.backgroundColor = 'rgba(0,0,0,0.3)';
+        elem.className = 'item';
         if (map[i]) elem.style.backgroundColor = 'black';
         fragment.appendChild(elem);
     }
     container.appendChild(fragment);
-
     let mousedown = false;
-    container.addEventListener('mousedown', (elem) => {
-        mousedown = true;
-        handleItemDown(elem);
-    })
-    window.addEventListener('mouseup', () => { mousedown = false; })
-    container.addEventListener('mousemove', (el) => {
-        handleItemDown(el);
-    })
     function handleItemDown(elem) {
         if (!mousedown) return;
         const { target } = elem;
@@ -61,12 +53,61 @@
             target.style.backgroundColor = 'black';
         }
     }
+
     function handleClick() {
         localStorage.setItem('map', JSON.stringify(map));
     }
+
     function handleResetClick() {
         localStorage.setItem('map', '');
         window.location.reload();
+    }
+
+    container.addEventListener('mousedown', (elem) => {
+        mousedown = true;
+        handleItemDown(elem);
+    })
+    window.addEventListener('mouseup', () => { mousedown = false; })
+    container.addEventListener('mousemove', handleItemDown)
+
+    function sleep(ts) {
+        return new Promise(resolve => {
+            setTimeout(resolve, ts)
+        })
+    }
+
+    async function findPath(map, start, end) {
+        const queue = [start];
+        const table = Object.create(map);
+        
+        function insert(x, y, prev) {
+
+            if (x < 0 || x >= 100 || y < 0 || y >= 100) return;
+            if (map[x + y * 100]) return;
+            
+            map[x + y * 100] = 1;
+            table[x + y * 100] = prev;
+            queue.push([x, y]);
+            container.children[x + y * 100].style.backgroundColor = 'lightgreen';
+        }
+
+        while (queue.length) {
+            let [x, y] = queue.shift();
+            if ((x === end[0]) && (y === end[1])) {
+                container.children[x + y * 100].style.backgroundColor = 'red';
+                while (x !== start[0] || y !== start[1]) {
+                    [x, y] = table[x + 100 * y];
+                    container.children[x + y * 100].style.backgroundColor = 'purple';
+                    await sleep(10);
+                }
+                break;
+            }
+
+            insert(x, y + 1, [x, y]);
+            insert(x - 1, y, [x, y]);
+            insert(x, y - 1, [x, y]);
+            insert(x + 1, y, [x, y]);
+        }
     }
 </script>
 </html>
